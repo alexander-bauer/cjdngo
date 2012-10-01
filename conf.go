@@ -16,8 +16,8 @@ type Conf struct {
 	Router                      RouterBlock     `json:"router"`                      //configuration for the router
 	ResetAfterInactivitySeconds int             `json:"resetAfterInactivitySeconds"` //remove cryptoauth sessions after this number of seconds
 	PidFile                     string          `json:"pidFile,omitempty"`           //the file to write the PID to, if enabled (disabled by default)
+	Version                     int             `json:"version"`                     //the internal config file version (mostly unused)
 	//BUG(DuoNoxSol): Need to add 'security' block
-	Version int `json:"version"` //the internal config file version (mostly unused)
 }
 
 //AuthPass is a struct containing a authorization password for connecting peers.
@@ -38,12 +38,17 @@ type InterfacesBlock struct {
 }
 
 type UDPInterfaceBlock struct {
-	Bind      string       `json:"bind"`      //the port to bind the UDP interface to
-	ConnectTo ConnectBlock `json:"connectTo"` //the list of peers to connect to
+	Bind      string                `json:"bind"`      //the port to bind the UDP interface to
+	ConnectTo map[string]Connection `json:"connectTo"` //maps connection information to peer details, where the Key is the peer's IPv4 address and port (or other connection detail) and the Element contains all of the information about the peer, such as password and public key
 }
 
-type ConnectBlock struct {
-	//map here?
+//Connection describes authentication details for connection to a peer who is serving this node. It is stored in the config file as dependent to a string, such as an IPv4 address (and port,) which is necessary to connect to the peer.
+type Connection struct {
+	Name      string `json:"name,omitempty"`     //the username or real name of the peer
+	Location  string `json:"location,omitempty"` //the geographical location of the peer
+	IPv6      string `json:"ipv6,omitempty"`     //the IPv6 address of the peer
+	Password  string `json:"password"`           //the password to connect to the peer
+	PublicKey string `json:"publicKey"`          //the peer's public key
 }
 
 type RouterBlock struct {
