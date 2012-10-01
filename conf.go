@@ -7,6 +7,8 @@ import (
 
 // Conf is a struct for cjdroute.conf files. It exports all values.
 type Conf struct {
+	Name                        string          `json:"name,omitempty"`              //the username or real name of the person running this node
+	Location                    string          `json:"location,omitempty"`          //the geographical location of this node
 	PrivateKey                  string          `json:"privateKey"`                  //the private key for this node (keep it safe)
 	PublicKey                   string          `json:"publicKey"`                   //the public key for this node
 	IPv6                        string          `json:"ipv6"`                        //this node's IPv6 address as (derived from publicKey)
@@ -22,9 +24,9 @@ type Conf struct {
 
 //AuthPass is a struct containing a authorization password for connecting peers.
 type AuthPass struct {
-	Name     string `json:"name,omitempty"`     //the username or real name of the authenticated peer
-	Location string `json:"location,omitempty"` //the geographical location of the authenticated peer
-	IPv6     string `json:"ipv6,omitempty"`     //the IPv6 used by this peer
+	Name     string `json:"name,omitempty"`     //the username or real name of the authenticated peer node's owner
+	Location string `json:"location,omitempty"` //the geographical location of the authenticated peer node
+	IPv6     string `json:"ipv6,omitempty"`     //the IPv6 used by this peer node
 	Password string `json:"password"`           //the password for incoming authorization
 }
 
@@ -44,11 +46,11 @@ type UDPInterfaceBlock struct {
 
 //Connection describes authentication details for connection to a peer who is serving this node. It is stored in the config file as dependent to a string, such as an IPv4 address (and port,) which is necessary to connect to the peer.
 type Connection struct {
-	Name      string `json:"name,omitempty"`     //the username or real name of the peer
-	Location  string `json:"location,omitempty"` //the geographical location of the peer
-	IPv6      string `json:"ipv6,omitempty"`     //the IPv6 address of the peer
-	Password  string `json:"password"`           //the password to connect to the peer
-	PublicKey string `json:"publicKey"`          //the peer's public key
+	Name      string `json:"name,omitempty"`     //the username or real name of the peer node's owner
+	Location  string `json:"location,omitempty"` //the geographical location of the peer node
+	IPv6      string `json:"ipv6,omitempty"`     //the IPv6 address of the peer node
+	Password  string `json:"password"`           //the password to connect to the peer node
+	PublicKey string `json:"publicKey"`          //the peer node's public key
 }
 
 type RouterBlock struct {
