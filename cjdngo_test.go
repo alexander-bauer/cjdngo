@@ -1,8 +1,18 @@
 package cjdngo
 
-import "testing"
+import (
+	"testing"
+	"encoding/json"
+)
 
 func TestJSON(t *testing.T) {
-	conf := ReadConf("./example.conf")
-	_ := WriteConf("./output.conf", conf)
+	conf, err := ReadConf("./example.conf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := json.MarshalIndent(conf, "", "\t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	println(string(b))
 }

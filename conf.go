@@ -3,64 +3,64 @@ package cjdngo
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 )
 
 type Conf struct {
-	privateKey string //the private key for this node (keep it safe)
-	publicKey string //the public key for this node
-	ipv6 string //this node's IPv6 address as (derived from publicKey)
-	authorizedPasswords []authPass //authorized passwords
-	admin adminBlock //information for RCP server
-	interfaces interfacesBlock //interfaces for the switch core
-	router routerBlock //configuration for the router
-	resetAfterInactivitySeconds int //remove cryptoauth sessions after this number of seconds
-	pidFile string //the file to write the PID to, if enabled (disabled by default)
+	PrivateKey string //the private key for this node (keep it safe)
+	PublicKey string //the public key for this node
+	IPv6 string //this node's IPv6 address as (derived from publicKey)
+	AuthorizedPasswords []AuthPass //authorized passwords
+	Admin AdminBlock //information for RCP server
+	Interfaces InterfacesBlock //interfaces for the switch core
+	Router RouterBlock //configuration for the router
+	ResetAfterInactivitySeconds int //remove cryptoauth sessions after this number of seconds
+	PidFile string //the file to write the PID to, if enabled (disabled by default)
+	Version int //the internal config file version (mostly unused)
 }
 	
-type authPass struct {
-	password string //the password for incoming authorization
+type AuthPass struct {
+	Password string //the password for incoming authorization
 	//add "name" and "location" fields?
 }
 
-type adminBlock struct {
-	bind string //the port to bind the RCP server to
-	password string //the password for the RCP server
+type AdminBlock struct {
+	Bind string //the port to bind the RCP server to
+	Password string //the password for the RCP server
 }
 
-type interfacesBlock struct {
+type InterfacesBlock struct {
 	UDPInterface UDPInterfaceBlock
 }
 
 type UDPInterfaceBlock struct {
-	bind string //the port to bind the UDP interface to
+	Bind string //the port to bind the UDP interface to
 	//connectTo []connectBlock //the list of peers to connect to
 }
 
-type routerBlock struct {
-	interfac interfaceBlock //interface used for connecting to the cjdns network
+type RouterBlock struct {
+	Interface InterfaceBlock //interface used for connecting to the cjdns network
 }
 
-type interfaceBlock struct {
-	typ string //the type of interface
-	tunDevice string //the persistent interface to use for cjdns (not usually used)
+type InterfaceBlock struct {
+	Type string //the type of interface
+	TunDevice string //the persistent interface to use for cjdns (not usually used)
 }
 
-func ReadConf(path string) *Conf {
+func ReadConf(path string) (*Conf, error) {
 	var conf Conf
 	
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	
 	err = json.Unmarshal(file, &conf)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &conf
+	return &conf, nil
 }
-
+/*
 func WriteConf(path string, conf Conf) error {
 	 b, err := json.Marshal(conf)
 	 if err != nil {
@@ -68,4 +68,4 @@ func WriteConf(path string, conf Conf) error {
 	 }
 	 
 	 err = ioutil.WriteFile(path, b)
-}
+}*/
