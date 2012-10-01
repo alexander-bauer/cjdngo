@@ -19,7 +19,7 @@ type Conf struct {
 	ResetAfterInactivitySeconds int             `json:"resetAfterInactivitySeconds"` //remove cryptoauth sessions after this number of seconds
 	PidFile                     string          `json:"pidFile,omitempty"`           //the file to write the PID to, if enabled (disabled by default)
 	Version                     int             `json:"version"`                     //the internal config file version (mostly unused)
-	Security interface{} `json:"security"` //block to contain that strange security formatting
+	Security                    interface{}     `json:"security"`                    //block to contain that strange security formatting
 	//BUG(DuoNoxSol): the Security block is not fully supported
 }
 
