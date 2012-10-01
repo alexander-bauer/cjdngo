@@ -71,7 +71,7 @@ func ReadConf(path string) (*Conf, error) {
 }
 
 func WriteConf(path string, conf Conf) error {
-	b, err := json.MarshalIndent(conf, "", "\t")
+	b, err := json.MarshalIndent(conf, "", "    ")
 	if err != nil {
 		return err
 	}
