@@ -16,7 +16,7 @@ JSON does not support comments, even though `cjdns` is able to parse it properly
 
 ## Installation
 
-`cjdngo` is a Go package, also describable as a "cjdns library." It provides no functionality of its own. Other Go programs, however, are able to import `cjdngo` and use it to interact with cjdns. If you are developing such an application, and want to be able to import `cjdngo` just like other packages, you need to make sure that your environment is set up to be able to do so.
+`cjdngo` is a Go package, also describable as a "cjdns library." It provides no functionality of its own. Other Go programs, however, are able to import `cjdngo` and use it to interact with cjdns. If you are developing such an application, and want to be able to import `cjdngo` just like other packages, you need to make sure that your environment is set up to be able to do so. See [here](http://golang.org/doc/code.html#tmp_79) for a much more detailed explanation.
 
 The environment variable `$GOPATH` must point to a directory (such as `$HOME/development/go`, without the trailing `/`) containing three subdirectories: `src/`, `pkg/`, and `bin/`. Once it is doing so, you can import `cjdngo` by doing one of the following.
 
@@ -34,4 +34,4 @@ Alternatively, you can use the `go` tool to fetch the package directly from GitH
 go get github.com/SashaCrofter/cjdngo
 ```
 
-If there is no output from the `go` command, then that means the installation was successful. After this point, you can use `cjdngo` by doing `import "cjdngo"` in your `.go` files.
+If there is no output from the `go` command, then that means the installation was successful. After this point, you can use `cjdngo` by doing `import "cjdngo"` in your code.
