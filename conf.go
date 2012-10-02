@@ -3,6 +3,7 @@ package cjdngo
 import (
 	"encoding/json"
 	"io/ioutil"
+	"regexp"
 )
 
 // Conf is a struct for cjdroute.conf files. It exports all values.
@@ -64,25 +65,44 @@ type InterfaceBlock struct {
 }
 
 func ReadConf(path string) (*Conf, error) {
-	var conf Conf
+	var conf Conf //create a variable to store the conf file in
 
-	file, err := ioutil.ReadFile(path)
+	file, err := ioutil.ReadFile(path) //read the file from the disk
 	if err != nil {
-		return nil, err
+		return nil, err //return the error if necessary
 	}
 
-	err = json.Unmarshal(file, &conf)
+	b := stripComments(file) //strip out all comments, multi and single line
+
+	err = json.Unmarshal(b, &conf) //parse the JSON into a Conf object
 	if err != nil {
-		return nil, err
+		return nil, err //return the error if necessary
 	}
-	return &conf, nil
+	return &conf, nil //and return the Conf object
 }
 
 func WriteConf(path string, conf Conf) error {
-	b, err := json.MarshalIndent(conf, "", "    ")
+	b, err := json.MarshalIndent(conf, "", "    ") //create a []byte with the JSON, indented by four spaces
 	if err != nil {
-		return err
+		return err //return the error if necessary
 	}
 
-	return ioutil.WriteFile(path, b, 0666)
+	return ioutil.WriteFile(path, b, 0666) //and return error from that operation
+}
+
+//stripComments replaces all C-style comments (prefixed with "//" and inside "/* */") with empty strings. This is necessary in parsing JSON files that contain them.
+//Returns b without comments.
+func stripComments(b []byte) []byte {
+	regComment, err := regexp.Compile("(?s)//.*?\n|/\\*.*?\\*/")
+	if err != nil {
+		panic(err)
+	}
+	//multiComment, err := regexp.Compile("/\*.*\*/")
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	out := regComment.ReplaceAllLiteral(b, nil)
+
+	return out
 }

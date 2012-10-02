@@ -6,7 +6,7 @@ import (
 
 //TestJSON reads a Conf object from ./example.conf, then logs it.
 func TestJSON(t *testing.T) {
-	conf, err := ReadConf("./example.conf")
+	conf, err := ReadConf("./original.conf")
 	if err != nil {
 		t.Fatal(err)
 	}
