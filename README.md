@@ -33,3 +33,5 @@ Alternatively, you can use the `go` tool to fetch the package directly from GitH
 ```sh
 go get github.com/SashaCrofter/cjdngo
 ```
+
+If there is no output from the `go` command, then that means the installation was successful. After this point, you can use `cjdngo` by doing `import "cjdngo"` in your `.go` files.
