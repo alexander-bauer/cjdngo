@@ -12,7 +12,7 @@ type Conf struct {
 	Location                    string          `json:"location,omitempty"`          //the geographical location of this node
 	TunConn                     string          `json:"TUNConnDetails"`              //the details to connect to the node via the Old Internet
 	PhysConn                    string          `json:"PhysConnDetails,omitempty"`   //the details to connect to the ndoe via physical (wireless) link
-	CorePath string `json:"corePath"` //the path to the cjdns executable
+	CorePath                    string          `json:"corePath"`                    //the path to the cjdns executable
 	PrivateKey                  string          `json:"privateKey"`                  //the private key for this node (keep it safe)
 	PublicKey                   string          `json:"publicKey"`                   //the public key for this node
 	IPv6                        string          `json:"ipv6"`                        //this node's IPv6 address as (derived from publicKey)
