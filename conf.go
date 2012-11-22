@@ -8,22 +8,22 @@ import (
 
 // Conf is a struct for cjdroute.conf files. It exports all values.
 type Conf struct {
-	Name                        string          `json:"name,omitempty"`              //the username or real name of the person running this node
-	Location                    string          `json:"location,omitempty"`          //the geographical location of this node
-	TunConn                     string          `json:"TUNConnDetails"`              //the details to connect to the node via the Old Internet
-	PhysConn                    string          `json:"PhysConnDetails,omitempty"`   //the details to connect to the ndoe via physical (wireless) link
-	CorePath                    string          `json:"corePath"`                    //the path to the cjdns executable
-	PrivateKey                  string          `json:"privateKey"`                  //the private key for this node (keep it safe)
-	PublicKey                   string          `json:"publicKey"`                   //the public key for this node
-	IPv6                        string          `json:"ipv6"`                        //this node's IPv6 address as (derived from publicKey)
-	AuthorizedPasswords         []AuthPass      `json:"authorizedPasswords"`         //authorized passwords
-	Admin                       AdminBlock      `json:"admin"`                       //information for RCP server
-	Interfaces                  InterfacesBlock `json:"interfaces"`                  //interfaces for the switch core
-	Router                      RouterBlock     `json:"router"`                      //configuration for the router
-	ResetAfterInactivitySeconds int             `json:"resetAfterInactivitySeconds"` //remove cryptoauth sessions after this number of seconds
-	PidFile                     string          `json:"pidFile,omitempty"`           //the file to write the PID to, if enabled (disabled by default)
-	Security                    interface{}     `json:"security"`                    //block to contain that strange security formatting
-	Version                     int             `json:"version"`                     //the internal config file version (mostly unused)
+	Name                        string         `json:"name,omitempty"`              //the username or real name of the person running this node
+	Location                    string         `json:"location,omitempty"`          //the geographical location of this node
+	TunConn                     string         `json:"TUNConnDetails"`              //the details to connect to the node via the Old Internet
+	EthConn                     string         `json:"ETHConnDetails,omitempty"`    //the MAC address of this node
+	CorePath                    string         `json:"corePath"`                    //the path to the cjdns executable
+	PrivateKey                  string         `json:"privateKey"`                  //the private key for this node (keep it safe)
+	PublicKey                   string         `json:"publicKey"`                   //the public key for this node
+	IPv6                        string         `json:"ipv6"`                        //this node's IPv6 address as (derived from publicKey)
+	AuthorizedPasswords         []AuthPass     `json:"authorizedPasswords"`         //authorized passwords
+	Admin                       AdminBlock     `json:"admin"`                       //information for RCP server
+	Interfaces                  InterfacesList `json:"interfaces"`                  //interfaces for the switch core
+	Router                      RouterBlock    `json:"router"`                      //configuration for the router
+	ResetAfterInactivitySeconds int            `json:"resetAfterInactivitySeconds"` //remove cryptoauth sessions after this number of seconds
+	PidFile                     string         `json:"pidFile,omitempty"`           //the file to write the PID to, if enabled (disabled by default)
+	Security                    interface{}    `json:"security"`                    //block to contain that strange security formatting
+	Version                     int            `json:"version"`                     //the internal config file version (mostly unused)
 	//BUG(DuoNoxSol): the Security block is not fully supported
 }
 
@@ -40,13 +40,14 @@ type AdminBlock struct {
 	Password string `json:"password"` //the password for the RCP server
 }
 
-type InterfacesBlock struct {
-	UDPInterface UDPInterfaceBlock `json:"UDPInterface"`
+type InterfacesList struct {
+	UDPInterface InterfaceBlock `json:"UDPInterface,omitempty"` //Network interface
+	ETHInterface InterfaceBlock `json:"ETHInterface,omitempty"` //Ethernet interface
 }
 
-type UDPInterfaceBlock struct {
-	Bind      string                `json:"bind"`      //the port to bind the UDP interface to
-	ConnectTo map[string]Connection `json:"connectTo"` //maps connection information to peer details, where the Key is the peer's IPv4 address and port (or other connection detail) and the Element contains all of the information about the peer, such as password and public key
+type InterfaceBlock struct {
+	Bind      string                `json:"bind"`      //Address or interface to bind to ("0.0.0.0:port" or "eth0")
+	ConnectTo map[string]Connection `json:"connectTo"` //Maps connection information to peer details, where the Key is the peer's IPv4 address and port, or MAC address, and the Connection contains all of the information about the peer, such as password and public key
 }
 
 //Connection describes authentication details for connection to a peer who is serving this node. It is stored in the config file as dependent to a string, such as an IPv4 address (and port,) which is necessary to connect to the peer.
@@ -59,12 +60,10 @@ type Connection struct {
 }
 
 type RouterBlock struct {
-	Interface InterfaceBlock `json:"interface"` //interface used for connecting to the cjdns network
-}
-
-type InterfaceBlock struct {
-	Type      string `json:"type"`                //the type of interface
-	TunDevice string `json:"tunDevice,omitempty"` //the persistent interface to use for cjdns (not usually used)
+	Interface struct {
+		Type      string `json:"type"`                //the type of interface
+		TunDevice string `json:"tunDevice,omitempty"` //the persistent interface to use for cjdns (not usually used)
+	} `json:"interface"` //interface used for connecting to the cjdns network
 }
 
 func ReadConf(path string) (*Conf, error) {
