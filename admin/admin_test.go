@@ -9,3 +9,9 @@ func TestPing(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestCookie(t *testing.T) {
+	if len(Cookie("127.0.0.1", "11234")) == 0 {
+		t.Fail()
+	}
+}

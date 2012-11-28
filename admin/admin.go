@@ -12,16 +12,17 @@ import (
 
 //This is the type which wraps a CJDNS admin interface. It is initialized by Connect().
 type CJDNS struct {
-	address  string //Address to connect to
-	password string //Admin interface password, used to connect
-	port     string //Port the admin interface is bound to
-	cookie   string //Cookie as given by the interface on connection
+	address string //Address to connect to
+	hash    string //Admin interface 64-bit hash, used to connect
+	port    string //Port the admin interface is bound to
+	cookie  string //Cookie as given by the interface on connection
 }
 
 //The CJDNS admin interface has a large number of functions. These are the string constants used to invoke them.
 const (
-	CommandPing = "ping" //Check if the admin server is running
-	CommandAuth = "auth" //Use authentication
+	CommandAuth   = "auth"   //Use authentication
+	CommandPing   = "ping"   //Check if the admin server is running
+	CommandCookie = "cookie" //Request a cookie from the server
 )
 
 //The CJDNS admin interface sometimes responds with particular strings to indicate statuses, such as "pong" to indicate that it is running.
@@ -40,6 +41,15 @@ func Ping(address, port string) (status bool) {
 		port:    port,
 	}
 	return cjdns.Ping()
+}
+
+//Wrapper for CJDNS.Cookie, which does not require a password. It returns the string that the admin server generates.
+func Cookie(address, port string) (cookie string) {
+	cjdns := &CJDNS{
+		address: address,
+		port:    port,
+	}
+	return cjdns.Cookie()
 }
 
 //Wraps the command and arguments in a map[string]interface{}, then uses the given Conn to encode them directly to the wire.
@@ -77,20 +87,38 @@ func receive(conn net.Conn) (response map[string]interface{}) {
 	return
 }
 
+//Wraps the net.Dial() function to reach an admin server. It is the caller's responsibility to close the connection.
+func (cjdns *CJDNS) Dial() (conn net.Conn, err error) {
+	return net.Dial("tcp", cjdns.address+":"+cjdns.port)
+}
+
 //Sends the admin server a ping, and returns true if it gets the expected response.
 func (cjdns *CJDNS) Ping() (status bool) {
-	conn, err := net.Dial("tcp", cjdns.address+":"+cjdns.port)
+	conn, err := cjdns.Dial()
 	if err != nil {
 		return
 	}
 	defer conn.Close()
 
 	send(conn, CommandPing, "", "", nil)
-
 	response := receive(conn)
 
 	if response["q"] != StatusPingOK {
 		return
 	}
 	return true
+}
+
+//Asks the admin server for a cookie, and returns the resultant string.
+func (cjdns *CJDNS) Cookie() (cookie string) {
+	conn, err := cjdns.Dial()
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	send(conn, CommandCookie, "", "", nil)
+	response := receive(conn)
+
+	return response["cookie"].(string)
 }
