@@ -4,6 +4,9 @@
 package admin
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
+	"errors"
 	"github.com/zeebo/bencode"
 	"io"
 	"net"
@@ -12,10 +15,10 @@ import (
 
 //This is the type which wraps a CJDNS admin interface. It is initialized by Connect().
 type CJDNS struct {
-	address string //Address to connect to
-	hash    string //Admin interface 64-bit hash, used to connect
-	port    string //Port the admin interface is bound to
-	cookie  string //Cookie as given by the interface on connection
+	address  string //Address to connect to
+	password string //Admin interface 64-bit hash, used to connect
+	port     string //Port the admin interface is bound to
+	cookie   string //Cookie as given by the interface on connection
 }
 
 //The CJDNS admin interface has a large number of functions. These are the string constants used to invoke them.
@@ -30,7 +33,32 @@ const (
 	StatusPingOK = "pong" //Response from CommandPing
 )
 
-func Connect(address, password, port string) (cjdns *CJDNS, err error) {
+var (
+	NoPingError         = errors.New("admin interface not responding")
+	NoCookieError       = errors.New("admin interface did not offer cookie")
+	AuthenticationError = errors.New("admin interface rejected password")
+)
+
+func Connect(address, port, password string) (cjdns *CJDNS, err error) {
+	cjdns = &CJDNS{
+		address:  address,
+		password: password,
+		port:     port,
+	}
+	up := cjdns.Ping()
+	if !up {
+		//If the interface doesn't respond,
+		//return the NoPingError.
+		return nil, NoPingError
+	}
+
+	//Get a cookie from the interface.
+	cjdns.cookie = cjdns.Cookie()
+	if len(cjdns.cookie) == 0 {
+		//If the server did not offer a
+		//cookie, return the NoCookieError.
+		return nil, NoCookieError
+	}
 	return
 }
 
@@ -53,7 +81,7 @@ func Cookie(address, port string) (cookie string) {
 }
 
 //Wraps the command and arguments in a map[string]interface{}, then uses the given Conn to encode them directly to the wire.
-func send(conn net.Conn, command, cookie, hash string, args map[string]string) {
+func send(conn net.Conn, command, cookie, password string, args map[string]string) {
 	//Exit if the command is not given.
 	if command == "" {
 		return
@@ -61,19 +89,30 @@ func send(conn net.Conn, command, cookie, hash string, args map[string]string) {
 	//Otherwise, create the map which will be used
 	//to encode the message.
 	message := make(map[string]interface{})
-	if cookie != "" && hash != "" {
+
+	if args != nil {
+		message["args"] = args
+	}
+
+	if cookie != "" && password != "" {
 		//If there is authentication involved,
 		//then use "aq". Otherwise, "q".
 		message["q"] = CommandAuth
 		message["aq"] = command
 		message["cookie"] = cookie
-		message["hash"] = hash
+		message["hash"] = password + cookie //as specified
+
+		//Prepare the hash
+		m, err := bencode.EncodeString(message)
+		if err != nil {
+			return
+		}
+
+		hash := sha256.New()
+		hash.Write([]byte(m))
+		message["hash"], _ = binary.Uvarint(hash.Sum(nil))
 	} else {
 		message["q"] = command
-	}
-
-	if args != nil {
-		message["args"] = args
 	}
 
 	m, err := bencode.EncodeString(message)

@@ -1,17 +1,33 @@
 package admin
 
 import (
+	"github.com/SashaCrofter/cjdngo"
 	"testing"
 )
 
 func TestPing(t *testing.T) {
 	if !Ping("127.0.0.1", "11234") {
-		t.Fail()
+		t.Fatal("Server did not respond to a ping.")
 	}
 }
 
 func TestCookie(t *testing.T) {
 	if len(Cookie("127.0.0.1", "11234")) == 0 {
-		t.Fail()
+		t.Fatal("Server did not respond with a cookie.")
+	}
+}
+
+func TestConnect(t *testing.T) {
+	conf, err := cjdngo.ReadConf("/etc/cjdroute.conf")
+	if err != nil {
+		//This is not related to the test.
+		t.Log(err)
+		t.Log("Could not read the config file. Skipping test.")
+		return
+	}
+
+	_, err = Connect("127.0.0.1", "11234", conf.Admin.Password)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
