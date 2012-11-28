@@ -5,7 +5,7 @@ package admin
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"github.com/zeebo/bencode"
 	"io"
@@ -81,7 +81,7 @@ func Cookie(address, port string) (cookie string) {
 }
 
 //Wraps the command and arguments in a map[string]interface{}, then uses the given Conn to encode them directly to the wire.
-func send(conn net.Conn, command, cookie, password string, args map[string]string) {
+func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]string) (response map[string]interface{}) {
 	//Exit if the command is not given.
 	if command == "" {
 		return
@@ -94,13 +94,13 @@ func send(conn net.Conn, command, cookie, password string, args map[string]strin
 		message["args"] = args
 	}
 
-	if cookie != "" && password != "" {
+	if cjdns.cookie != "" && cjdns.password != "" {
 		//If there is authentication involved,
 		//then use "aq". Otherwise, "q".
 		message["q"] = CommandAuth
 		message["aq"] = command
-		message["cookie"] = cookie
-		message["hash"] = password + cookie //as specified
+		message["cookie"] = cjdns.cookie
+		message["hash"] = cjdns.password + cjdns.cookie //as specified
 
 		//Prepare the hash
 		m, err := bencode.EncodeString(message)
@@ -110,7 +110,7 @@ func send(conn net.Conn, command, cookie, password string, args map[string]strin
 
 		hash := sha256.New()
 		hash.Write([]byte(m))
-		message["hash"], _ = binary.Uvarint(hash.Sum(nil))
+		message["hash"] = hex.EncodeToString(hash.Sum(nil))
 	} else {
 		message["q"] = command
 	}
@@ -119,9 +119,7 @@ func send(conn net.Conn, command, cookie, password string, args map[string]strin
 	if err == nil {
 		io.WriteString(conn, m)
 	}
-}
 
-func receive(conn net.Conn) (response map[string]interface{}) {
 	bencode.NewDecoder(conn).Decode(&response)
 	return
 }
@@ -139,8 +137,7 @@ func (cjdns *CJDNS) Ping() (status bool) {
 	}
 	defer conn.Close()
 
-	send(conn, CommandPing, "", "", nil)
-	response := receive(conn)
+	response := cjdns.Send(conn, CommandPing, nil)
 
 	if response["q"] != StatusPingOK {
 		return
@@ -156,8 +153,7 @@ func (cjdns *CJDNS) Cookie() (cookie string) {
 	}
 	defer conn.Close()
 
-	send(conn, CommandCookie, "", "", nil)
-	response := receive(conn)
+	response := cjdns.Send(conn, CommandCookie, nil)
 
 	return response["cookie"].(string)
 }

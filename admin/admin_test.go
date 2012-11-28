@@ -26,8 +26,10 @@ func TestConnect(t *testing.T) {
 		return
 	}
 
-	_, err = Connect("127.0.0.1", "11234", conf.Admin.Password)
+	cjdns, err := Connect("127.0.0.1", "11234", conf.Admin.Password)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cjdns.Ping()
 }
