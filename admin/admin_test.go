@@ -5,5 +5,7 @@ import (
 )
 
 func TestPing(t *testing.T) {
-	Ping("127.0.0.1", "11234")
+	if !Ping("127.0.0.1", "11234") {
+		t.Fail()
+	}
 }

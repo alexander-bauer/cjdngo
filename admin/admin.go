@@ -5,6 +5,7 @@ package admin
 
 import (
 	"github.com/zeebo/bencode"
+	"io"
 	"net"
 	//"time"
 )
@@ -64,7 +65,11 @@ func send(conn net.Conn, command, cookie, hash string, args map[string]string) {
 	if args != nil {
 		message["args"] = args
 	}
-	bencode.NewEncoder(conn).Encode(message)
+
+	m, err := bencode.EncodeString(message)
+	if err == nil {
+		io.WriteString(conn, m)
+	}
 }
 
 func receive(conn net.Conn) (response map[string]interface{}) {
