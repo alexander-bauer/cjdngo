@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-//TestJSON reads a Conf object from ./example.conf, then logs it.
+//TestJSON reads a Conf object from ./example.conf, then writes it to ./temp.conf.
 func TestJSON(t *testing.T) {
 	conf, err := ReadConf("./example.conf")
 	if err != nil {
