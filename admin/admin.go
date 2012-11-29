@@ -90,17 +90,18 @@ func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]string) 
 	//to encode the message.
 	message := make(map[string]interface{})
 
-	if args != nil {
-		message["args"] = args
-	}
-
 	if cjdns.cookie != "" && cjdns.password != "" {
 		//If there is authentication involved,
 		//then use "aq". Otherwise, "q".
-		message["q"] = CommandAuth
+
+		hash := sha256.New()
+		hash.Write([]byte(cjdns.password + cjdns.cookie))
+
 		message["aq"] = command
+		message["args"] = args
 		message["cookie"] = cjdns.cookie
-		message["hash"] = cjdns.password + cjdns.cookie //as specified
+		message["hash"] = hex.EncodeToString(hash.Sum(nil)) //as specified
+		message["q"] = CommandAuth
 
 		//Prepare the hash
 		m, err := bencode.EncodeString(message)
@@ -108,7 +109,7 @@ func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]string) 
 			return
 		}
 
-		hash := sha256.New()
+		hash = sha256.New()
 		hash.Write([]byte(m))
 		message["hash"] = hex.EncodeToString(hash.Sum(nil))
 	} else {
