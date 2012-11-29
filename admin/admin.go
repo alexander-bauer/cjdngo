@@ -23,9 +23,10 @@ type CJDNS struct {
 
 //The CJDNS admin interface has a large number of functions. These are the string constants used to invoke them.
 const (
-	CommandAuth   = "auth"   //Use authentication
-	CommandPing   = "ping"   //Check if the admin server is running
-	CommandCookie = "cookie" //Request a cookie from the server
+	CommandAuth      = "auth"                //Use authentication
+	CommandPing      = "ping"                //Check if the admin server is running
+	CommandCookie    = "cookie"              //Request a cookie from the server
+	CommandDumpTable = "NodeStore_dumpTable" //Dump the routing table
 )
 
 //The CJDNS admin interface sometimes responds with particular strings to indicate statuses, such as "pong" to indicate that it is running.
@@ -40,6 +41,9 @@ var (
 )
 
 func Connect(address, port, password string) (cjdns *CJDNS, err error) {
+	if len(address) == 0 || len(port) == 0 || len(password) == 0 {
+		return nil, errors.New("not enough arguments to Connect()")
+	}
 	cjdns = &CJDNS{
 		address:  address,
 		password: password,
@@ -80,8 +84,8 @@ func Cookie(address, port string) (cookie string) {
 	return cjdns.Cookie()
 }
 
-//Wraps the command and arguments in a map[string]interface{}, then uses the given Conn to encode them directly to the wire.
-func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]string) (response map[string]interface{}) {
+//Wraps the command and arguments in a map[string]interface{}, then uses the given Conn to encode them directly to the wire. It sends authorization if it is supplied in the given CJDNS.
+func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]interface{}) (response map[string]interface{}) {
 	//Exit if the command is not given.
 	if command == "" {
 		return
@@ -157,4 +161,20 @@ func (cjdns *CJDNS) Cookie() (cookie string) {
 	response := cjdns.Send(conn, CommandCookie, nil)
 
 	return response["cookie"].(string)
+}
+
+//Retrieves the desired page of the routing table from the admin server. Generally, one wants page 0. Requires authorization.
+func (cjdns *CJDNS) DumpTable(page int) (table []interface{}) {
+	conn, err := cjdns.Dial()
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	args := make(map[string]interface{}, 1)
+	args["page"] = page
+
+	response := cjdns.Send(conn, CommandDumpTable, args)
+	table = response["routingTable"].([]interface{})
+	return
 }

@@ -18,12 +18,25 @@ func TestConnect(t *testing.T) {
 		return
 	}
 
-	cjdns, err = Connect("127.0.0.1", "11234", conf.Admin.Password)
+	cjd, err := Connect("127.0.0.1", "11234", conf.Admin.Password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !cjdns.Ping() {
+	if !cjd.Ping() {
 		t.Fatal("Server did not respond to ping.")
+	}
+	cjdns = cjd
+}
+
+func TestDumpTable(t *testing.T) {
+	if cjdns == nil {
+		t.Log("Admin interface not connected.")
+		return
+	}
+
+	table := cjdns.DumpTable(0)
+	if len(table) == 0 {
+		t.Fatal("Routing table was not dumped properly.")
 	}
 }
