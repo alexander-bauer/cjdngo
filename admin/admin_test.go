@@ -19,7 +19,7 @@ func TestCookie(t *testing.T) {
 
 func TestConnect(t *testing.T) {
 	conf, err := cjdngo.ReadConf("/etc/cjdroute.conf")
-	if err != nil {
+	if err != nil || len(conf.Admin.Password) == 0 {
 		//This is not related to the test.
 		t.Log(err)
 		t.Log("Could not read the config file. Skipping test.")
