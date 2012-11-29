@@ -5,17 +5,9 @@ import (
 	"testing"
 )
 
-func TestPing(t *testing.T) {
-	if !Ping("127.0.0.1", "11234") {
-		t.Fatal("Server did not respond to a ping.")
-	}
-}
-
-func TestCookie(t *testing.T) {
-	if len(Cookie("127.0.0.1", "11234")) == 0 {
-		t.Fatal("Server did not respond with a cookie.")
-	}
-}
+var (
+	cjdns *CJDNS
+)
 
 func TestConnect(t *testing.T) {
 	conf, err := cjdngo.ReadConf("/etc/cjdroute.conf")
@@ -26,10 +18,12 @@ func TestConnect(t *testing.T) {
 		return
 	}
 
-	cjdns, err := Connect("127.0.0.1", "11234", conf.Admin.Password)
+	cjdns, err = Connect("127.0.0.1", "11234", conf.Admin.Password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cjdns.Ping()
+	if !cjdns.Ping() {
+		t.Fatal("Server did not respond to ping.")
+	}
 }
