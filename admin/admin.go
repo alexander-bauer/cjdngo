@@ -21,6 +21,14 @@ type CJDNS struct {
 	cookie   string //Cookie as given by the interface on connection
 }
 
+//A Route is a single entry in the CJDNS routing table. Each entry has preciesly one IPv6 address, one path, one unitless link quality number, and one version number.
+type Route struct {
+	IP      string `bencode:"ip"`      //Node's IPv6 address
+	Path    string `bencode:"path"`    //Routing path to the node
+	Link    int64  `bencode:"link"`    //The link quality (unitless)
+	Version int64  `bencode:"version"` //The node's version (primarily unused)
+}
+
 //The CJDNS admin interface has a large number of functions. These are the string constants used to invoke them.
 const (
 	CommandAuth      = "auth"                //Use authentication
@@ -164,7 +172,7 @@ func (cjdns *CJDNS) Cookie() (cookie string) {
 }
 
 //Retrieves the desired page of the routing table from the admin server. Generally, one wants page 0. Requires authorization.
-func (cjdns *CJDNS) DumpTable(page int) (table []interface{}) {
+func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 	conn, err := cjdns.Dial()
 	if err != nil {
 		return
@@ -175,6 +183,16 @@ func (cjdns *CJDNS) DumpTable(page int) (table []interface{}) {
 	args["page"] = page
 
 	response := cjdns.Send(conn, CommandDumpTable, args)
-	table = response["routingTable"].([]interface{})
+	rawTable := response["routingTable"].([]interface{})
+	table = make([]*Route, len(rawTable))
+	for i := range rawTable {
+		item := rawTable[i].(map[string]interface{})
+		table[i] = &Route{
+			IP:      item["ip"].(string),
+			Path:    item["path"].(string),
+			Link:    item["link"].(int64),
+			Version: item["version"].(int64),
+		}
+	}
 	return
 }
