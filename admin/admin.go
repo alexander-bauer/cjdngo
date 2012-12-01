@@ -10,7 +10,9 @@ import (
 	"errors"
 	"github.com/zeebo/bencode"
 	"io"
+	"math"
 	"net"
+	"strings"
 	//"time"
 )
 
@@ -185,11 +187,11 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 
 	response := cjdns.Send(conn, CommandDumpTable, args)
 	rawTable := response["routingTable"].([]interface{})
-	table = make([]*Route, len(rawTable))
+	table = make([]*Route, 0, len(rawTable))
 	for i := range rawTable {
 		item := rawTable[i].(map[string]interface{})
 
-		bPath, err := hex.DecodeString(item["path"].(string))
+		bPath, err := hex.DecodeString(strings.Replace(item["path"].(string), ".", "", -1))
 		if err != nil || len(bPath) != 8 {
 			//If we get an error, or the
 			//path is not 64 bits, discard.
@@ -197,25 +199,25 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 		}
 		path, _ := binary.Uvarint(bPath)
 
-		table[i] = &Route{
+		table = append(table, &Route{
 			IP:      item["ip"].(string),
 			Path:    path,
 			Link:    uint64(item["link"].(int64)),
 			Version: item["version"].(int64),
-		}
+		})
 	}
 	return
 }
 
 //FilterRoutes is a function for filtering a routing table based on certain parameters. If a host is provided, only routes for which the target ip matches that host will be returned. If maxHops is greater than zero, then only the remaining routes that are fewer than that number of nodes away. If maxLink is greater than zero, any routes with a greater link (lower quality) will be filtered.
 //Currently, maxHops is nonfunctional.
-func FilterRoutes(table []Route, host string, maxHops int, maxLink uint64) (routes []Route) {
+func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (routes []*Route) {
 	//Make sure the table is supplied, and either
 	//a host or maxHops is supplied.
 	if len(table) == 0 || (len(host) == 0 && maxHops <= 0) {
 		return
 	}
-	routes = make([]Route, 0, len(table))
+	routes = make([]*Route, 0, len(table))
 	for i := range table {
 		if len(host) > 0 && table[i].IP != host {
 			//If host is supplied, and the
@@ -233,7 +235,24 @@ func FilterRoutes(table []Route, host string, maxHops int, maxLink uint64) (rout
 		if maxHops > 0 {
 			//If we're filtering by hops,
 			//then we should filter here.
-			//TODO
+			var hops int
+			for ii := range table {
+				if ii == i {
+					//Skip the self route
+					continue
+				}
+				//https://github.com/cjdelisle/cjdns/blob/master/rfcs/Whitepaper.md#the-switch
+				fullPath := table[i].Path
+				candPath := table[ii].Path
+				g := 64 - uint64(math.Log2(float64(candPath)))
+				h := ^0 >> g
+				if uint64(h)&fullPath == uint64(h)&candPath {
+					hops++
+					if hops > maxHops {
+						break
+					}
+				}
+			}
 		}
 		routes = append(routes, table[i])
 	}

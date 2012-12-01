@@ -39,4 +39,11 @@ func TestDumpTable(t *testing.T) {
 	if len(table) == 0 {
 		t.Fatal("Routing table was not dumped properly.")
 	}
+
+	peers := FilterRoutes(table, "", 1, 0)
+	if len(peers) == len(table) {
+		//If that didn't filter anything,
+		//then we know something's wrong.
+		t.Fatal("FilterRoutes() did not filter direct peers.")
+	}
 }
