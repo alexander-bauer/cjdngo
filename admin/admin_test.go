@@ -38,6 +38,7 @@ func TestDumpTable(t *testing.T) {
 	if len(table) == 0 {
 		t.Fatal("Routing table was not dumped properly.")
 	}
+	println(len(table))
 
 	peers := FilterRoutes(table, "", 1, 0)
 	if len(peers) == len(table) {
@@ -47,4 +48,5 @@ func TestDumpTable(t *testing.T) {
 	} else if len(peers) == 0 {
 		t.Fatal("FilterRoutes() filtered all nodes.")
 	}
+	println(len(peers))
 }
