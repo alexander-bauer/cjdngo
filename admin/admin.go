@@ -236,6 +236,7 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 			//If we're filtering by hops,
 			//then we should filter here.
 			var hops int
+		hopCount:
 			for ii := range table {
 				if ii == i {
 					//Skip the self route
@@ -249,9 +250,12 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 				if uint64(h)&fullPath == uint64(h)&candPath {
 					hops++
 					if hops > maxHops {
-						break
+						break hopCount
 					}
 				}
+			}
+			if hops > maxHops {
+				continue
 			}
 		}
 		routes = append(routes, table[i])
