@@ -196,3 +196,28 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 	}
 	return
 }
+
+//FilterRoutes is a function for filtering a routing table based on certain parameters. If a host is provided, only routes for which the target ip matches that host will be returned. If maxHops is greater than zero, then only the remaining routes that are fewer than that number of nodes away.
+//Currently, maxHops is nonfunctional.
+func FilterRoutes(table []Route, host string, maxHops int) (routes []Route) {
+	//Make sure the table is supplied, and either
+	//a host or maxHops is supplied.
+	if len(table) == 0 || (len(host) == 0 && maxHops <= 0) {
+		return
+	}
+	routes = make([]Route, 0, len(table))
+	for i := range table {
+		if len(host) > 0 && table[i].IP != host {
+			//If host is supplied, and the
+			//IP doesn't match, ignore it.
+			continue
+		}
+		if maxHops > 0 {
+			//If we're filtering by hops,
+			//then we should filter here.
+			//TODO
+		}
+		routes = append(routes, table[i])
+	}
+	return routes
+}
