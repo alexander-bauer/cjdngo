@@ -191,13 +191,17 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 	for i := range rawTable {
 		item := rawTable[i].(map[string]interface{})
 
-		bPath, err := hex.DecodeString(strings.Replace(item["path"].(string), ".", "", -1))
+		sPath := strings.Replace(item["path"].(string), ".", "", -1)
+		bPath, err := hex.DecodeString(sPath)
 		if err != nil || len(bPath) != 8 {
 			//If we get an error, or the
 			//path is not 64 bits, discard.
+			//This should also prevent
+			//runtime errors.
 			continue
 		}
-		path, _ := binary.Uvarint(bPath)
+		//Read the []byte into a unit64
+		path := binary.BigEndian.Uint64(bPath)
 
 		table = append(table, &Route{
 			IP:      item["ip"].(string),
@@ -245,9 +249,9 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 				//https://github.com/cjdelisle/cjdns/blob/master/rfcs/Whitepaper.md#the-switch
 				fullPath := table[i].Path
 				candPath := table[ii].Path
-				g := 64 - uint64(math.Log2(float64(candPath)))
-				h := ^0 >> g
-				if uint64(h)&fullPath == uint64(h)&candPath {
+				g := uint64(64 - math.Log2(float64(candPath)))
+				h := uint64(^uint(0) >> g)
+				if h&fullPath == h&candPath {
 					hops++
 					if hops > maxHops {
 						break hopCount
