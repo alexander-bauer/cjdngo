@@ -31,8 +31,7 @@ func TestConnect(t *testing.T) {
 
 func TestDumpTable(t *testing.T) {
 	if cjdns == nil {
-		t.Log("Admin interface not connected.")
-		return
+		t.Fatal("Admin interface not connected.")
 	}
 
 	table := cjdns.DumpTable(0)
@@ -45,5 +44,7 @@ func TestDumpTable(t *testing.T) {
 		//If that didn't filter anything,
 		//then we know something's wrong.
 		t.Fatal("FilterRoutes() did not filter direct peers.")
+	} else if len(peers) == 0 {
+		t.Fatal("FilterRoutes() filtered all nodes.")
 	}
 }
