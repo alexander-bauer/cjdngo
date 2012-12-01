@@ -251,12 +251,14 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 				candPath := table[ii].Path
 				g := uint64(64 - math.Log2(float64(candPath)))
 				h := uint64(^uint(0) >> g)
+				//BUG(DuoNoxSol): h is always 0, here.
 				if h&fullPath == h&candPath {
 					hops++
 					if hops > maxHops {
 						break hopCount
 					}
 				}
+				println(fullPath, candPath, g, h)
 			}
 			if hops > maxHops {
 				continue
