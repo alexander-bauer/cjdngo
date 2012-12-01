@@ -5,6 +5,7 @@ package admin
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"github.com/zeebo/bencode"
@@ -24,8 +25,8 @@ type CJDNS struct {
 //A Route is a single entry in the CJDNS routing table. Each entry has preciesly one IPv6 address, one path, one unitless link quality number, and one version number.
 type Route struct {
 	IP      string `bencode:"ip"`      //Node's IPv6 address
-	Path    string `bencode:"path"`    //Routing path to the node
-	Link    int64  `bencode:"link"`    //The link quality (unitless)
+	Path    uint64 `bencode:"path"`    //Routing path to the node
+	Link    uint64 `bencode:"link"`    //The link quality (unitless)
 	Version int64  `bencode:"version"` //The node's version (primarily unused)
 }
 
@@ -187,10 +188,19 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 	table = make([]*Route, len(rawTable))
 	for i := range rawTable {
 		item := rawTable[i].(map[string]interface{})
+
+		bPath, err := hex.DecodeString(item["path"].(string))
+		if err != nil || len(bPath) != 8 {
+			//If we get an error, or the
+			//path is not 64 bits, discard.
+			continue
+		}
+		path, _ := binary.Uvarint(bPath)
+
 		table[i] = &Route{
 			IP:      item["ip"].(string),
-			Path:    item["path"].(string),
-			Link:    item["link"].(int64),
+			Path:    path,
+			Link:    uint64(item["link"].(int64)),
 			Version: item["version"].(int64),
 		}
 	}
@@ -199,7 +209,7 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 
 //FilterRoutes is a function for filtering a routing table based on certain parameters. If a host is provided, only routes for which the target ip matches that host will be returned. If maxHops is greater than zero, then only the remaining routes that are fewer than that number of nodes away. If maxLink is greater than zero, any routes with a greater link (lower quality) will be filtered.
 //Currently, maxHops is nonfunctional.
-func FilterRoutes(table []Route, host string, maxHops int, maxLink int64) (routes []Route) {
+func FilterRoutes(table []Route, host string, maxHops int, maxLink uint64) (routes []Route) {
 	//Make sure the table is supplied, and either
 	//a host or maxHops is supplied.
 	if len(table) == 0 || (len(host) == 0 && maxHops <= 0) {
