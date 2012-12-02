@@ -174,7 +174,7 @@ func (cjdns *CJDNS) Cookie() (cookie string) {
 	return response["cookie"].(string)
 }
 
-//Retrieves the desired page of the routing table from the admin server. Generally, one wants page 0. Requires authorization.
+//Retrieves the desired page of the routing table from the admin server. Requesting page -1 will result in the dumping of the whole routing table. Requires authorization.
 func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 	conn, err := cjdns.Dial()
 	if err != nil {
@@ -182,33 +182,51 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 	}
 	defer conn.Close()
 
-	args := make(map[string]interface{}, 1)
-	args["page"] = page
+	getMulti := (page < 0) //If page is negative, get all the pages
+	if getMulti {
+		page = 0
+	}
 
-	response := cjdns.Send(conn, CommandDumpTable, args)
-	rawTable := response["routingTable"].([]interface{})
-	table = make([]*Route, 0, len(rawTable))
-	for i := range rawTable {
-		item := rawTable[i].(map[string]interface{})
+	var gotAll bool //gotAll will be false
+	table = make([]*Route, 0)
+	for !gotAll {
+		args := make(map[string]interface{}, 1)
+		args["page"] = page
 
-		sPath := strings.Replace(item["path"].(string), ".", "", -1)
-		bPath, err := hex.DecodeString(sPath)
-		if err != nil || len(bPath) != 8 {
-			//If we get an error, or the
-			//path is not 64 bits, discard.
-			//This should also prevent
-			//runtime errors.
-			continue
+		response := cjdns.Send(conn, CommandDumpTable, args)
+		rawTable := response["routingTable"].([]interface{})
+		tablePage := make([]*Route, 0, len(rawTable))
+		for i := range rawTable {
+			item := rawTable[i].(map[string]interface{})
+
+			sPath := strings.Replace(item["path"].(string), ".", "", -1)
+			bPath, err := hex.DecodeString(sPath)
+			if err != nil || len(bPath) != 8 {
+				//If we get an error, or the
+				//path is not 64 bits, discard.
+				//This should also prevent
+				//runtime errors.
+				continue
+			}
+			//Read the []byte into a unit64
+			path := binary.BigEndian.Uint64(bPath)
+
+			tablePage = append(tablePage, &Route{
+				IP:      item["ip"].(string),
+				Path:    path,
+				Link:    uint64(item["link"].(int64)),
+				Version: item["version"].(int64),
+			})
 		}
-		//Read the []byte into a unit64
-		path := binary.BigEndian.Uint64(bPath)
+		//Put the page of the table into the table,
+		table = append(table, tablePage...)
 
-		table = append(table, &Route{
-			IP:      item["ip"].(string),
-			Path:    path,
-			Link:    uint64(item["link"].(int64)),
-			Version: item["version"].(int64),
-		})
+		//then check if the loop should continue.
+		if getMulti && response["more"] != nil {
+			page += 1
+		} else {
+			gotAll = true
+		}
 	}
 	return
 }
@@ -253,12 +271,12 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 				h := uint64(uint64(0xffffffffffffffff) >> g)
 				if h&fullPath == h&candPath {
 					hops++
-					if hops > maxHops {
+					if hops >= maxHops {
 						break hopCount
 					}
 				}
 			}
-			if hops > maxHops {
+			if hops >= maxHops {
 				continue
 			}
 		}

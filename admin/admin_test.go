@@ -34,7 +34,7 @@ func TestDumpTable(t *testing.T) {
 		t.Fatal("Admin interface not connected.")
 	}
 
-	table := cjdns.DumpTable(0)
+	table := cjdns.DumpTable(-1)
 	if len(table) == 0 {
 		t.Fatal("Routing table was not dumped properly.")
 	}
@@ -48,5 +48,7 @@ func TestDumpTable(t *testing.T) {
 	} else if len(peers) == 0 {
 		t.Fatal("FilterRoutes() filtered all nodes.")
 	}
-	println(len(peers))
+	for _, p := range peers {
+		println(p.IP)
+	}
 }
