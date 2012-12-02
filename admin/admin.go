@@ -187,9 +187,8 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 		page = 0
 	}
 
-	var gotAll bool //gotAll will be false
 	table = make([]*Route, 0)
-	for !gotAll {
+	for {
 		args := make(map[string]interface{}, 1)
 		args["page"] = page
 
@@ -222,10 +221,11 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 		table = append(table, tablePage...)
 
 		//then check if the loop should continue.
-		if getMulti && response["more"] != nil {
+		_, isPresent := response["more"]
+		if getMulti && isPresent {
 			page += 1
 		} else {
-			gotAll = true
+			break
 		}
 	}
 	return
@@ -240,13 +240,13 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 		return
 	}
 	routes = make([]*Route, 0, len(table))
-	for i := range table {
-		if len(host) > 0 && table[i].IP != host {
+	for i, r := range table {
+		if len(host) > 0 && r.IP != host {
 			//If host is supplied, and the
 			//IP doesn't match, ignore it.
 			continue
 		}
-		if maxLink > 0 && table[i].Link > maxLink {
+		if maxLink > 0 && r.Link > maxLink {
 			//If we're filtering by link
 			//quality, and the table's
 			//link quality is worse than
@@ -257,19 +257,19 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 		if maxHops > 0 {
 			//If we're filtering by hops,
 			//then we should filter here.
-			var hops int
+			hops := 0
 		hopCount:
-			for ii := range table {
-				if ii == i {
-					//Skip the self route
+			for ii, c := range table {
+				if ii == i || c.Path == 1 {
+					//Skip the self route,
+					//and do not count the
+					//zero-route as a hop.
 					continue
 				}
 				//https://github.com/cjdelisle/cjdns/blob/master/rfcs/Whitepaper.md#the-switch
-				fullPath := table[i].Path
-				candPath := table[ii].Path
-				g := uint64(64 - math.Log2(float64(candPath)))
+				g := uint64(64 - math.Log2(float64(c.Path)))
 				h := uint64(uint64(0xffffffffffffffff) >> g)
-				if h&fullPath == h&candPath {
+				if h&r.Path == h&c.Path {
 					hops++
 					if hops >= maxHops {
 						break hopCount
@@ -280,7 +280,7 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 				continue
 			}
 		}
-		routes = append(routes, table[i])
+		routes = append(routes, r)
 	}
 	return routes
 }
