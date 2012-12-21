@@ -41,8 +41,8 @@ type AdminBlock struct {
 }
 
 type InterfacesList struct {
-	UDPInterface InterfaceBlock `json:"UDPInterface,omitempty"` //Network interface
-	ETHInterface InterfaceBlock `json:"ETHInterface,omitempty"` //Ethernet interface
+	UDPInterface []InterfaceBlock `json:"UDPInterface,omitempty"` //Network interface
+	ETHInterface []InterfaceBlock `json:"ETHInterface,omitempty"` //Ethernet interface
 }
 
 type InterfaceBlock struct {
