@@ -41,12 +41,14 @@ func TestDumpTable(t *testing.T) {
 	t.Log("Number of routes is", len(table))
 
 	peers := FilterRoutes(table, "", 1, 0)
-	if len(peers) == len(table) {
-		// If that didn't filter anything,
-		// then we know something's wrong.
-		t.Fatal("FilterRoutes() did not filter direct peers.")
-	} else if len(peers) == 0 {
+	extendedPeers := FilterRoutes(table, "", 2, 0)
+	if len(peers) == len(table) || len(extendedPeers) == len(table) {
+		// If that didn't filter anything, then we know something's
+		// wrong.
+		t.Fatal("FilterRoutes() did not filter peers correctly.")
+	} else if len(peers) == 0 || len(extendedPeers) == 0 {
 		t.Fatal("FilterRoutes() filtered all nodes.")
 	}
-	t.Log("Number of direct peers is", len(peers))
+	t.Log("Routes 1 or 0 hops away:", len(peers))
+	t.Log("Routes 2 or fewer hops away:", len(extendedPeers))
 }
