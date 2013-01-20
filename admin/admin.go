@@ -254,9 +254,9 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 // certain parameters. If a host is provided, only routes for which
 // the target ip matches that host will be returned. If maxHops is
 // greater than zero, then only the remaining routes that are fewer
-// than that number of nodes away. If maxLink is greater than zero,
-// any routes with a greater link (lower quality) will be filtered.
-// Currently, maxHops is nonfunctional.
+// than or equal to that number of nodes away. If maxLink is greater
+// than zero, any routes with a greater link (lower quality) will be
+// filtered.
 func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (routes []*Route) {
 	// Make sure the table is supplied, and either a host or maxHops
 	// is supplied.
