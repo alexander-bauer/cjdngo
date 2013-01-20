@@ -14,8 +14,7 @@ func TestConnect(t *testing.T) {
 	if err != nil || len(conf.Admin.Password) == 0 {
 		// This is not related to the test.
 		t.Log(err)
-		t.Log("Could not read the config file. Skipping test.")
-		return
+		t.Fatal("Could not read the config file. This is not related to cjdngo/admin.")
 	}
 
 	cjd, err := Connect("127.0.0.1", "11234", conf.Admin.Password)
@@ -31,14 +30,15 @@ func TestConnect(t *testing.T) {
 
 func TestDumpTable(t *testing.T) {
 	if cjdns == nil {
-		t.Fatal("Admin interface not connected.")
+		t.Log("Admin interface not connected.")
+		return
 	}
 
 	table := cjdns.DumpTable(-1)
 	if len(table) == 0 {
 		t.Fatal("Routing table was not dumped properly.")
 	}
-	println(len(table))
+	t.Log("Number of routes is", len(table))
 
 	peers := FilterRoutes(table, "", 1, 0)
 	if len(peers) == len(table) {
@@ -48,7 +48,5 @@ func TestDumpTable(t *testing.T) {
 	} else if len(peers) == 0 {
 		t.Fatal("FilterRoutes() filtered all nodes.")
 	}
-	for _, p := range peers {
-		println(p.IP)
-	}
+	t.Log("Number of direct peers is", len(peers))
 }
