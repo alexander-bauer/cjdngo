@@ -287,7 +287,7 @@ func FilterRoutes(table []*Route, host string, maxHops int, maxLink uint64) (rou
 					continue
 				}
 				// https://github.com/cjdelisle/cjdns/blob/master/rfcs/Whitepaper.md#the-switch
-				g := uint64(64 - math.Log2(float64(c.Path)))
+				g := 64 - uint64(math.Log2(float64(c.Path)))
 				h := uint64(uint64(0xffffffffffffffff) >> g)
 				if h&r.Path == h&c.Path {
 					hops++
