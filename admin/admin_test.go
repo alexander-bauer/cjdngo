@@ -7,6 +7,7 @@ import (
 
 var (
 	cjdns *CJDNS
+	table []*Route
 )
 
 func TestConnect(t *testing.T) {
@@ -30,25 +31,37 @@ func TestConnect(t *testing.T) {
 
 func TestDumpTable(t *testing.T) {
 	if cjdns == nil {
-		t.Log("Admin interface not connected.")
+		t.Log("Admin interface not connected; skipping test.")
 		return
 	}
 
-	table := cjdns.DumpTable(-1)
+	table = cjdns.DumpTable(-1)
 	if len(table) == 0 {
+		table = nil
 		t.Fatal("Routing table was not dumped properly.")
 	}
 	t.Log("Number of routes is", len(table))
+}
 
-	peers := FilterRoutes(table, "", 1, 0)
-	extendedPeers := FilterRoutes(table, "", 2, 0)
-	if len(peers) == len(table) || len(extendedPeers) == len(table) {
-		// If that didn't filter anything, then we know something's
-		// wrong.
-		t.Fatal("FilterRoutes() did not filter peers correctly.")
-	} else if len(peers) == 0 || len(extendedPeers) == 0 {
-		t.Fatal("FilterRoutes() filtered all nodes.")
+func TestPeerFilter(t *testing.T) {
+	if cjdns == nil {
+		t.Log("Admin interface not connected; skipping test.")
+		return
 	}
-	t.Log("Routes 1 or 0 hops away:", len(peers))
-	t.Log("Routes 2 or fewer hops away:", len(extendedPeers))
+	if table == nil {
+		t.Log("Routing table could not be dumped; skipping test.")
+		return
+	}
+
+	peers := cjdns.Peers(1) // Retrieve direct peers
+	if peers == nil {
+		t.Fatal("Peers were returned nil.")
+	}
+	t.Logf("Number of direct peers: %d\n", len(peers))
+
+	extendedPeers := cjdns.Peers(2) // Peers of peers
+	if extendedPeers == nil {
+		t.Fatal("Extended peers were returned nil.")
+	}
+	t.Logf("Number of extended peers: %d\n", len(extendedPeers))
 }

@@ -193,6 +193,29 @@ func (cjdns *CJDNS) Cookie() (cookie string) {
 	return response["cookie"].(string)
 }
 
+// Peers is a convenience function which makes use of DumpTable() and
+// FilterRoutes() to simplify retrieval of network information. The
+// argument allows the caller to specify the maximum number of hops
+// that node is away. For example, a value of 1 will return only
+// direct peers. A value of 2 will return direct peers and the peers
+// of peers. (Please note that a value of 0 will return *all*
+// addresses in the routing table.)
+func (cjdns *CJDNS) Peers(maxHops int) (peers map[string]interface{}) {
+	routes := cjdns.DumpTable(-1)
+	if routes == nil {
+		return
+	}
+
+	routes = FilterRoutes(routes, "", maxHops, 0)
+	peers = make(map[string]interface{})
+	for _, r := range routes {
+		if r.Path != uint64(1) { // Filter out self
+			peers[r.IP] = new(interface{})
+		}
+	}
+	return
+}
+
 // Retrieves the desired page of the routing table from the admin
 // server. Requesting page -1 will result in the dumping of the whole
 // routing table. Requires authorization.
