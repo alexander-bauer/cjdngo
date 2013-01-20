@@ -12,7 +12,7 @@ var (
 func TestConnect(t *testing.T) {
 	conf, err := cjdngo.ReadConf("/etc/cjdroute.conf")
 	if err != nil || len(conf.Admin.Password) == 0 {
-		//This is not related to the test.
+		// This is not related to the test.
 		t.Log(err)
 		t.Log("Could not read the config file. Skipping test.")
 		return
@@ -42,8 +42,8 @@ func TestDumpTable(t *testing.T) {
 
 	peers := FilterRoutes(table, "", 1, 0)
 	if len(peers) == len(table) {
-		//If that didn't filter anything,
-		//then we know something's wrong.
+		// If that didn't filter anything,
+		// then we know something's wrong.
 		t.Fatal("FilterRoutes() did not filter direct peers.")
 	} else if len(peers) == 0 {
 		t.Fatal("FilterRoutes() filtered all nodes.")
