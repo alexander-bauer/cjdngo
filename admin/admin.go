@@ -20,6 +20,8 @@ import (
 // This is the type which wraps a CJDNS admin interface. It is
 // initialized by Connect().
 type CJDNS struct {
+	Conn net.Conn // Active connection
+
 	address  string // Address to connect to
 	password string // Admin interface 64-bit hash, used to connect
 	port     string // Port the admin interface is bound to
@@ -53,45 +55,67 @@ const (
 // running.
 const (
 	StatusPingOK = "pong" // Response from CommandPing
+
+	ErrorAuthFail = "Auth failed." // Response from invalid password
 )
 
 var (
-	NoPingError         = errors.New("admin interface not responding")
+	NoPingError         = errors.New("admin interface did not respond to ping")
 	NoCookieError       = errors.New("admin interface did not offer cookie")
 	AuthenticationError = errors.New("admin interface rejected password")
 )
 
+// Connect performs all of the steps necessary to set up a connection
+// with the CJDNS admin server. It first attempts to ping, returning a
+// NoPingError if it fails to repond. If authentication is declined, it
+// will return an AuthenticationError. Then, it retrieves a cookie. If
+// that fails, it returns a NoCookieError. It is the caller's
+// responsibility to invoke Close() when finished.
 func Connect(address, port, password string) (cjdns *CJDNS, err error) {
-	if len(address) == 0 || len(port) == 0 || len(password) == 0 {
-		return nil, errors.New("not enough arguments to Connect()")
+	if len(address) == 0 {
+		address = "localhost"
 	}
+
 	cjdns = &CJDNS{
 		address:  address,
 		password: password,
 		port:     port,
 	}
-	up := cjdns.Ping()
-	if !up {
-		// If the interface doesn't respond,
-		// return the NoPingError.
+
+	cjdns.Conn, err = net.Dial("tcp", cjdns.address+":"+cjdns.port)
+	if err != nil {
+		return
+	}
+
+	up, authenticatedOK := cjdns.Ping()
+	if !authenticatedOK {
+		// If the authentication failed, then show that.
+		return nil, AuthenticationError
+	} else if !up {
+		// If the interface doesn't respond, return the NoPingError.
 		return nil, NoPingError
 	}
 
 	// Get a cookie from the interface.
 	cjdns.cookie = cjdns.Cookie()
 	if len(cjdns.cookie) == 0 {
-		// If the server did not offer a
-		// cookie, return the NoCookieError.
+		// If the server did not offer a cookie, return the
+		// NoCookieError.
 		return nil, NoCookieError
 	}
 	return
+}
+
+// Close is a wrapper to cjdns.Conn.Close().
+func (cjdns *CJDNS) Close() {
+	cjdns.Conn.Close()
 }
 
 // Wrapper for CJDNS.Ping, which does not require a password. It is
 // useful to check if the CJDNS admin server is running, without
 // necessarily having access to a configuration file. It will return
 // true if the server is up.
-func Ping(address, port string) (status bool) {
+func Ping(address, port string) (status, authenticatedOK bool) {
 	cjdns := &CJDNS{
 		address: address,
 		port:    port,
@@ -112,7 +136,7 @@ func Cookie(address, port string) (cookie string) {
 // Wraps the command and arguments in a map[string]interface{}, then
 // uses the given Conn to encode them directly to the wire. It sends
 // authorization if it is supplied in the given CJDNS.
-func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]interface{}) (response map[string]interface{}) {
+func (cjdns *CJDNS) Send(command string, args map[string]interface{}) (response map[string]interface{}) {
 	// Exit if the command is not given.
 	if command == "" {
 		return
@@ -149,47 +173,38 @@ func (cjdns *CJDNS) Send(conn net.Conn, command string, args map[string]interfac
 
 	m, err := bencode.EncodeString(message)
 	if err == nil {
-		io.WriteString(conn, m)
+		io.WriteString(cjdns.Conn, m)
+		bencode.NewDecoder(cjdns.Conn).Decode(&response)
 	}
-
-	bencode.NewDecoder(conn).Decode(&response)
 	return
-}
-
-// Wraps the net.Dial() function to reach an admin server. It is the
-// caller's responsibility to close the connection.
-func (cjdns *CJDNS) Dial() (conn net.Conn, err error) {
-	return net.Dial("tcp", cjdns.address+":"+cjdns.port)
 }
 
 // Sends the admin server a ping, and returns true if it gets the
 // expected response.
-func (cjdns *CJDNS) Ping() (status bool) {
-	conn, err := cjdns.Dial()
-	if err != nil {
-		return
+func (cjdns *CJDNS) Ping() (status, authenticatedOK bool) {
+	response := cjdns.Send(CommandPing, nil)
+
+	// Check to make sure that the authentication went alright. Because
+	// of the use of interfaces, we need to typecast as safely as
+	// possible.
+	err := response["error"]
+	if !(err != nil && err.(string) != ErrorAuthFail) {
+		// As long as we don't receive this particular error, the
+		// authorization was probably successful.
+		authenticatedOK = true
 	}
-	defer conn.Close()
-
-	response := cjdns.Send(conn, CommandPing, nil)
-
 	if response["q"] != StatusPingOK {
 		return
+	} else {
+		status = true
 	}
-	return true
+	return
 }
 
 // Asks the admin server for a cookie, and returns the resultant
 // string.
 func (cjdns *CJDNS) Cookie() (cookie string) {
-	conn, err := cjdns.Dial()
-	if err != nil {
-		return
-	}
-	defer conn.Close()
-
-	response := cjdns.Send(conn, CommandCookie, nil)
-
+	response := cjdns.Send(CommandCookie, nil)
 	return response["cookie"].(string)
 }
 
@@ -220,12 +235,6 @@ func (cjdns *CJDNS) Peers(maxHops int) (peers map[string]interface{}) {
 // server. Requesting page -1 will result in the dumping of the whole
 // routing table. Requires authorization.
 func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
-	conn, err := cjdns.Dial()
-	if err != nil {
-		return
-	}
-	defer conn.Close()
-
 	getMulti := (page < 0) // If page is negative, get all the pages
 	if getMulti {
 		page = 0
@@ -236,7 +245,7 @@ func (cjdns *CJDNS) DumpTable(page int) (table []*Route) {
 		args := make(map[string]interface{}, 1)
 		args["page"] = page
 
-		response := cjdns.Send(conn, CommandDumpTable, args)
+		response := cjdns.Send(CommandDumpTable, args)
 		rawTable := response["routingTable"].([]interface{})
 		tablePage := make([]*Route, 0, len(rawTable))
 		for i := range rawTable {

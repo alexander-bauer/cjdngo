@@ -23,7 +23,10 @@ func TestConnect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !cjd.Ping() {
+	pingOK, authOK := cjd.Ping()
+	if !authOK {
+		t.Fatal("Server authentication failed.")
+	} else if !pingOK {
 		t.Fatal("Server did not respond to ping.")
 	}
 	cjdns = cjd
