@@ -75,6 +75,9 @@ func Connect(address, port, password string) (cjdns *CJDNS, err error) {
 	if len(address) == 0 {
 		address = "localhost"
 	}
+	if len(port) == 0 {
+		port = "11234"
+	}
 
 	cjdns = &CJDNS{
 		address:  address,
