@@ -85,7 +85,7 @@ func Connect(address, port, password string) (cjdns *CJDNS, err error) {
 		port:     port,
 	}
 
-	cjdns.Conn, err = net.Dial("tcp", cjdns.address+":"+cjdns.port)
+	cjdns.Conn, err = net.Dial("udp", cjdns.address+":"+cjdns.port)
 	if err != nil {
 		return
 	}
